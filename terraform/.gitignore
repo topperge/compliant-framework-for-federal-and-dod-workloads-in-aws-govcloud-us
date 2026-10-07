@@ -9,3 +9,5 @@ crash.log
 # Local configuration with real account ids / emails
 config/framework.yaml
 backend*.hcl
+# Lock files are committed for live layers only
+modules/**/.terraform.lock.hcl
