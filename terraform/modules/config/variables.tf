@@ -20,6 +20,12 @@ variable "config_delivery_frequency" {
   default     = "Three_Hours"
 }
 
+variable "delivery_s3_bucket_name" {
+  description = "Override for the delivery bucket name (default config-<logging_account_id>-<primary_region>). Passing logging-assets' config_s3_bucket_name output gives an implicit dependency; avoid module-level depends_on, which defers this module's data sources and breaks its count expressions."
+  type        = string
+  default     = null
+}
+
 variable "configuration_recorder_name" {
   description = "Name of the configuration recorder. CFN generated this name; set it to the existing name when importing."
   type        = string

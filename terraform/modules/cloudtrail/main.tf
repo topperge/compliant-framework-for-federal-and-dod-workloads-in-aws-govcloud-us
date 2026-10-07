@@ -60,8 +60,8 @@ resource "aws_cloudtrail" "cloudtrail" {
   include_global_service_events = true
   enable_logging                = true
   is_multi_region_trail         = true
-  s3_bucket_name                = "cloudtrail-${var.logging_account_id}-${local.region}"
-  kms_key_id                    = "arn:${local.partition}:kms:${local.region}:${var.logging_account_id}:alias/compliant-framework/logging/s3"
+  s3_bucket_name                = coalesce(var.s3_bucket_name, "cloudtrail-${var.logging_account_id}-${local.region}")
+  kms_key_id                    = coalesce(var.kms_key_id, "arn:${local.partition}:kms:${local.region}:${var.logging_account_id}:alias/compliant-framework/logging/s3")
 
   event_selector {
     include_management_events = true

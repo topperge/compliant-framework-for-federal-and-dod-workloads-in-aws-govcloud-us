@@ -12,7 +12,7 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   root_arn   = "arn:${local.partition}:iam::${local.account_id}:root"
 
-  is_primary_region                 = local.region == var.primary_region
+  is_primary_region = local.region == var.primary_region
   create_security_hub_access_role = (
     var.create_security_hub_access_role && local.is_primary_region && local.account_id != var.central_account_id
   )

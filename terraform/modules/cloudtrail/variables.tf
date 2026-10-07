@@ -3,6 +3,18 @@ variable "logging_account_id" {
   type        = string
 }
 
+variable "s3_bucket_name" {
+  description = "Override for the trail bucket (default cloudtrail-<logging_account_id>-<region>). Passing logging-assets' cloudtrail_s3_bucket_name output gives an implicit dependency instead of module-level depends_on."
+  type        = string
+  default     = null
+}
+
+variable "kms_key_id" {
+  description = "Override for the trail CMK (default arn:<partition>:kms:<region>:<logging_account_id>:alias/compliant-framework/logging/s3)."
+  type        = string
+  default     = null
+}
+
 variable "trail_name" {
   description = "CloudTrail trail name. CFN generated this name; set it to the existing trail name when importing."
   type        = string

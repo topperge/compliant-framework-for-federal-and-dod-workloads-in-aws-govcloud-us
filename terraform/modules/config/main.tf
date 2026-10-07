@@ -58,7 +58,7 @@ resource "aws_config_configuration_recorder" "config" {
 
 resource "aws_config_delivery_channel" "config" {
   name           = var.delivery_channel_name
-  s3_bucket_name = "config-${var.logging_account_id}-${var.primary_region}"
+  s3_bucket_name = coalesce(var.delivery_s3_bucket_name, "config-${var.logging_account_id}-${var.primary_region}")
 
   snapshot_delivery_properties {
     delivery_frequency = var.config_delivery_frequency
