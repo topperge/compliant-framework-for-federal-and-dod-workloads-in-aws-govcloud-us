@@ -56,6 +56,18 @@ Organizations.
 
 
 ## Deployment
+
+### Terraform
+
+The solution can be deployed with Terraform from the [`terraform/`](terraform/README.md)
+directory, which implements the same architecture as the CloudFormation/CDK
+version below (same resources and physical names) without CodePipeline,
+StackSets or the bootstrap state machine. See [terraform/README.md](terraform/README.md)
+for the layer layout, deployment steps and how to migrate an existing
+CloudFormation deployment.
+
+### CloudFormation (legacy)
+
 The solution is deployed using a CloudFormation template. For details on
 deploying the solution please see the details on the solution home page:
 [Compliant Framework for Federal and DoD Workloads in AWS GovCloud (US)](https://aws.amazon.com/solutions/implementations/compliant-framework-for-federal-and-dod-workloads-in-aws-govcloud-us/)
@@ -66,6 +78,7 @@ deploying the solution please see the details on the solution home page:
 ### Project directory structure
 
 ```
+├── terraform                           [Terraform implementation: modules, live layers, scripts]
 ├── deployment                          [folder containing build scripts]
 │   ├── cdk-solution-helper             [a helper function to help deploy lambda function code through S3 buckets]
 │   ├── framework-nuke                  [helper python scripts to help uninstall the solution]
