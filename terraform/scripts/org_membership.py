@@ -3,13 +3,15 @@
 the requested parent (root or OU).
 
 Terraform has no resource for organization invitations/handshakes, so the
-02-govcloud-organization layer calls this from a terraform_data provisioner.
+02-organization layer calls this from a terraform_data provisioner. Accounts
+that are already members (always the case for the commercial partition) are
+only moved.
 It is idempotent and replaces the InviteAccounts Lambda and the
 initialize_organizational_units pipeline Lambda of the CloudFormation version.
 
 Credentials: the organization management account (standard AWS env/profile).
-The member account must trust that account through --role-name (the role
-created by CreateGovCloudAccount).
+Invited accounts must trust that account through --role-name (the role
+created by CreateGovCloudAccount). Works in the aws and aws-us-gov partitions.
 """
 
 import argparse
@@ -72,7 +74,7 @@ def main():
     parser.add_argument('--account-id', required=True)
     parser.add_argument('--parent-id', required=True)
     parser.add_argument('--role-name', default='CompliantFrameworkAccountAccessRole')
-    parser.add_argument('--region', default='us-gov-west-1')
+    parser.add_argument('--region', required=True)
     args = parser.parse_args()
 
     session = boto3.session.Session(region_name=args.region)

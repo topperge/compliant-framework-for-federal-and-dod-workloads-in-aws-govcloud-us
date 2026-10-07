@@ -1,4 +1,6 @@
-# GovCloud organization layer (run in the GovCloud central/management account).
+# Organization layer, run in the central account = organization management
+# account of the target partition (the GovCloud account paired with the payer
+# when partition = "aws-us-gov", the commercial payer itself when "aws").
 #
 # Replaces:
 #   - InitializeOrganization Lambda (GovCloud side) and InviteAccounts Lambda
@@ -12,9 +14,13 @@ locals {
   config = yamldecode(file(coalesce(var.config_file, "${path.root}/../../config/framework.yaml")))
 
   account_access_role = try(local.config.account_access_role_name, "CompliantFrameworkAccountAccessRole")
+  # us-gov-west-1 -> usgw1, us-east-1 -> use1, eu-central-1 -> euc1
   region_short = {
-    "us-gov-west-1" = "usgw1"
-    "us-gov-east-1" = "usge1"
+    for r in distinct([for e in values(local.config.environments) : e.region]) : r => join("", concat(
+      [split("-", r)[0]],
+      [for p in slice(split("-", r), 1, length(split("-", r)) - 1) : substr(p, 0, 1)],
+      [element(split("-", r), length(split("-", r)) - 1)],
+    ))
   }
 
   environments = local.config.environments
@@ -52,6 +58,16 @@ provider "aws" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
+resource "terraform_data" "partition_check" {
+  lifecycle {
+    precondition {
+      condition     = data.aws_partition.current.partition == try(local.config.partition, "aws-us-gov")
+      error_message = "Credentials are for partition ${data.aws_partition.current.partition} but the config targets ${try(local.config.partition, "aws-us-gov")}."
+    }
+  }
+}
 
 #
 # Organization. If the organization already exists, import it first:
@@ -83,8 +99,9 @@ resource "aws_organizations_organizational_unit" "tenants" {
 }
 
 #
-# Invite (GovCloud accounts created via CreateGovCloudAccount are standalone)
-# and place every framework account in its OU.
+# Invite (GovCloud accounts created via CreateGovCloudAccount are standalone;
+# accounts created in a commercial organization are already members) and place
+# every framework account in its OU.
 #
 resource "terraform_data" "membership" {
   for_each = {
@@ -96,7 +113,7 @@ resource "terraform_data" "membership" {
 
   provisioner "local-exec" {
     command = join(" ", [
-      "python3", "${path.module}/../../scripts/govcloud_org_membership.py",
+      "python3", "${path.module}/../../scripts/org_membership.py",
       "--account-id", each.key,
       "--parent-id", each.value,
       "--role-name", local.account_access_role,

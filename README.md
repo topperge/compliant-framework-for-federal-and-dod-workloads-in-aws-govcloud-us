@@ -62,8 +62,11 @@ Organizations.
 The solution can be deployed with Terraform from the [`terraform/`](terraform/README.md)
 directory, which implements the same architecture as the CloudFormation/CDK
 version below (same resources and physical names) without CodePipeline,
-StackSets or the bootstrap state machine. See [terraform/README.md](terraform/README.md)
-for the layer layout, deployment steps and how to migrate an existing
+StackSets or the bootstrap state machine. The Terraform version can build the
+framework either in AWS GovCloud (US) (`partition: aws-us-gov`) or in a
+commercial AWS region (`partition: aws`). See [terraform/README.md](terraform/README.md)
+for the layer layout, how to choose the target partition, deployment steps
+for each, and how to migrate an existing
 CloudFormation deployment.
 
 ### CloudFormation (legacy)

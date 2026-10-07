@@ -1,4 +1,4 @@
-# Offline plan against mocked AWS providers using config/framework.example.yaml.
+# Offline plan of this layer for AWS GovCloud (US) against mocked AWS providers.
 # Run: terraform init -backend=false && terraform test
 mock_provider "aws" {
   mock_data "aws_partition" { defaults = { partition = "aws-us-gov", dns_suffix = "amazonaws.com" } }
@@ -8,6 +8,7 @@ mock_provider "aws" {
   mock_data "aws_organizations_organization" { defaults = { id = "o-abcdefghij", arn = "arn:aws-us-gov:organizations::111111111111:organization/o-abcdefghij", roots = [{ id = "r-abcd", arn = "arn:aws-us-gov:organizations::111111111111:root/o-abcdefghij/r-abcd", name = "Root", policy_types = [] }] } }
   mock_data "aws_ssm_parameter" { defaults = { value = "arn:aws-us-gov:kms:us-gov-west-1:222222222222:key/abc" } }
   mock_data "aws_iam_policy_document" { defaults = { json = "{}" } }
+  mock_resource "aws_organizations_organization" { defaults = { id = "o-abcdefghij", arn = "arn:aws-us-gov:organizations::111111111111:organization/o-abcdefghij", roots = [{ id = "r-abcd", arn = "arn:aws-us-gov:organizations::111111111111:root/o-abcdefghij/r-abcd", name = "Root", policy_types = [] }] } }
   mock_resource "aws_kms_key" { defaults = { arn = "arn:aws-us-gov:kms:us-gov-west-1:222222222222:key/abc" } }
   mock_resource "aws_kms_alias" { defaults = { arn = "arn:aws-us-gov:kms:us-gov-west-1:222222222222:alias/abc" } }
   mock_resource "aws_iam_role" { defaults = { arn = "arn:aws-us-gov:iam::222222222222:role/x" } }
@@ -21,10 +22,21 @@ mock_provider "aws" {
   mock_resource "aws_ec2_transit_gateway" { defaults = { arn = "arn:aws-us-gov:ec2:us-gov-west-1:333333333333:transit-gateway/tgw-1" } }
   mock_resource "aws_subnet" { defaults = { arn = "arn:aws-us-gov:ec2:us-gov-west-1:333333333333:subnet/subnet-1" } }
   mock_resource "aws_backup_vault" { defaults = { arn = "arn:aws-us-gov:backup:us-gov-west-1:333333333333:backup-vault:x" } }
-  mock_resource "aws_organizations_organization" { defaults = { id = "o-abcdefghij", arn = "arn:aws-us-gov:organizations::111111111111:organization/o-abcdefghij", roots = [{ id = "r-abcd", arn = "arn:aws-us-gov:organizations::111111111111:root/o-abcdefghij/r-abcd", name = "Root", policy_types = [] }] } }
 }
-run "plan" {
+
+run "plan_govcloud" {
   command = plan
+
+  assert {
+    condition     = aws_organizations_organizational_unit.environment["prod"].name == "environment-usgw1-prod"
+    error_message = "Unexpected environment OU name: ${aws_organizations_organizational_unit.environment["prod"].name}"
+  }
+
+  assert {
+    condition     = aws_organizations_organizational_unit.tenants["prod"].name == "environment-usgw1-prod-tenants"
+    error_message = "Unexpected tenant OU name."
+  }
+
   variables {
     config_file = "../../config/framework.example.yaml"
   }

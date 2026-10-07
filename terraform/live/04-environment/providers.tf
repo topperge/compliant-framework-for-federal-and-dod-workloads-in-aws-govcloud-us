@@ -74,3 +74,12 @@ data "aws_ssm_parameter" "consolidated_logs_cmk_arn" {
   provider = aws.central
   name     = "/compliant/framework/consolidated-logs/cmk/arn"
 }
+
+resource "terraform_data" "partition_check" {
+  lifecycle {
+    precondition {
+      condition     = data.aws_partition.current.partition == try(local.config.partition, "aws-us-gov")
+      error_message = "Credentials are for partition ${data.aws_partition.current.partition} but the config targets ${try(local.config.partition, "aws-us-gov")}."
+    }
+  }
+}

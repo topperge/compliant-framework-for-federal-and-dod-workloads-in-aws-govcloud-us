@@ -106,3 +106,12 @@ resource "aws_securityhub_invite_accepter" "this" {
 
   depends_on = [aws_securityhub_member.this]
 }
+
+resource "terraform_data" "partition_check" {
+  lifecycle {
+    precondition {
+      condition     = data.aws_partition.current.partition == try(local.config.partition, "aws-us-gov")
+      error_message = "Credentials are for partition ${data.aws_partition.current.partition} but the config targets ${try(local.config.partition, "aws-us-gov")}."
+    }
+  }
+}

@@ -122,3 +122,12 @@ resource "aws_s3_bucket_policy" "state" {
 
   depends_on = [aws_s3_bucket_public_access_block.state]
 }
+
+resource "terraform_data" "partition_check" {
+  lifecycle {
+    precondition {
+      condition     = data.aws_partition.current.partition == try(local.config.partition, "aws-us-gov")
+      error_message = "Credentials are for partition ${data.aws_partition.current.partition} but the config targets ${try(local.config.partition, "aws-us-gov")}."
+    }
+  }
+}

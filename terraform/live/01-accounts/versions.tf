@@ -12,8 +12,8 @@ terraform {
     }
   }
 
-  # Partial configuration: the commercial payer account cannot read the GovCloud
-  # state bucket with the same credentials, so pass a commercial-side bucket,
-  # or use a local backend, via -backend-config.
+  # Partial configuration. With partition = "aws-us-gov" the commercial payer
+  # credentials cannot read the GovCloud state bucket, so pass a commercial-side
+  # bucket (backend-commercial.hcl). With partition = "aws" use backend.hcl.
   backend "s3" {}
 }

@@ -3,12 +3,12 @@
 # stack parameters). Copy to config/framework.yaml and fill in real values.
 # Every live layer reads this file.
 #
-# This example targets AWS GovCloud (US). For the commercial partition see
-# framework.commercial.example.yaml.
+# This example targets the commercial partition (standard AWS regions). For AWS
+# GovCloud (US) see framework.example.yaml.
 
 # Target partition: aws-us-gov (GovCloud) or aws (commercial regions).
-partition: aws-us-gov
-primary_region: us-gov-west-1
+partition: aws
+primary_region: us-east-1
 
 # Role created in every account by CreateGovCloudAccount and assumed by Terraform.
 account_access_role_name: CompliantFrameworkAccountAccessRole
@@ -24,14 +24,14 @@ notifications:
   environment_email: team-alias+env-notifications@example.com  # was environmentNotificationEmail
 
 #
-# Commercial payer account (live/01-accounts). With partition aws-us-gov each
-# entry is a CreateGovCloudAccount request (commercial twin + GovCloud account).
+# Organization management account (live/01-accounts). With partition aws the
+# accounts are created directly in this organization.
 #
 commercial:
   region: us-east-1
   create_organization: false
   account_vending_machine:
-    enabled: true
+    enabled: false                    # GovCloud-only (creates GovCloud accounts)
   # One account request per entry (was loggingAccountEmail,
   # transitAccountEmail and managementServicesAccountEmail).
   accounts:
@@ -50,10 +50,10 @@ commercial:
 
 #
 # Accounts of the target partition (ids are the accounts[*].account_id outputs
-# of 01-accounts, i.e. the GovCloud ids)
+# of 01-accounts)
 #
 central:
-  account_id: "111111111111"          # GovCloud organization management account
+  account_id: "111111111111"          # organization management account (same as commercial payer)
   service_catalog_provider_name: Central Services
   ssm_parameters: {}                  # extra SSM parameters to write in central
 
@@ -69,7 +69,7 @@ account_baseline:
 
 environments:
   prod:
-    region: us-gov-west-1
+    region: us-east-1
 
     transit:
       account_id: "333333333333"

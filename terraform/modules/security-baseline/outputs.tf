@@ -29,3 +29,8 @@ output "config_recorder_name" {
   description = "Name of the AWS Config configuration recorder."
   value       = aws_config_configuration_recorder.config_configuration_recorder.name
 }
+
+output "config_rule_names" {
+  description = "Names of the deployed AWS Config rules (region-gated rules are omitted in GovCloud)."
+  value       = sort(keys(aws_config_config_rule.conformance_pack))
+}

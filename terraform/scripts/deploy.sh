@@ -8,8 +8,8 @@
 #   scripts/deploy.sh <layer> [terraform args...]
 #
 # Layers:
-#   commercial        live/01-commercial-accounts  (commercial payer credentials)
-#   organization      live/02-govcloud-organization
+#   accounts          live/01-accounts  (commercial payer credentials; alias: commercial)
+#   organization      live/02-organization
 #   core              live/03-core
 #   environment ENV   live/04-environment, one state per environment
 #   baselines [ENV]   live/05-account-baseline, one state per member account
@@ -18,19 +18,21 @@
 # Environment:
 #   CONFIG_FILE   framework config (default: config/framework.yaml)
 #   BACKEND_HCL   S3 backend settings (default: backend.hcl, see live/00-tfstate)
-#   COMMERCIAL_BACKEND_HCL  backend settings for the commercial layer, which
-#                 cannot use GovCloud credentials (default: backend-commercial.hcl)
+#   COMMERCIAL_BACKEND_HCL  backend settings for the accounts layer. Defaults to
+#                 backend-commercial.hcl when the config targets aws-us-gov
+#                 (commercial credentials cannot reach the GovCloud bucket) and
+#                 to BACKEND_HCL when it targets aws.
 #   TF_ACTION     plan | apply (default: apply)
 #
-# GovCloud layers run with credentials for the GovCloud central (organization
-# management) account; member accounts are reached through
-# account_access_role_name.
+# The config's `partition` selects the target: aws-us-gov (GovCloud) or aws
+# (commercial). Every layer except accounts runs with credentials for the
+# central account (the organization management account of that partition);
+# member accounts are reached through account_access_role_name.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_FILE="$(realpath "${CONFIG_FILE:-$ROOT/config/framework.yaml}")"
 BACKEND_HCL="$(realpath "${BACKEND_HCL:-$ROOT/backend.hcl}")"
-COMMERCIAL_BACKEND_HCL="$(realpath "${COMMERCIAL_BACKEND_HCL:-$ROOT/backend-commercial.hcl}")"
 TF_ACTION="${TF_ACTION:-apply}"
 
 config_query() {
@@ -38,7 +40,9 @@ config_query() {
 import sys, yaml
 cfg = yaml.safe_load(open(sys.argv[1]))
 query = sys.argv[2]
-if query == "environments":
+if query == "partition":
+    print(cfg.get("partition", "aws-us-gov"))
+elif query == "environments":
     print("\n".join(cfg.get("environments", {})))
 elif query.startswith("accounts:"):
     # member accounts of one environment that receive the account baseline
@@ -80,10 +84,19 @@ layer_baselines() {
   done
 }
 
+PARTITION="$(config_query partition)"
+if [[ "$PARTITION" == "aws" ]]; then
+  default_accounts_backend="$BACKEND_HCL"
+else
+  default_accounts_backend="$ROOT/backend-commercial.hcl"
+fi
+COMMERCIAL_BACKEND_HCL="$(realpath "${COMMERCIAL_BACKEND_HCL:-$default_accounts_backend}")"
+
 layer="${1:-}"; shift || true
 case "$layer" in
-  commercial)   BACKEND_HCL="$COMMERCIAL_BACKEND_HCL" run live/01-commercial-accounts "compliant-framework/commercial-accounts.tfstate" "$@" ;;
-  organization) run live/02-govcloud-organization "compliant-framework/govcloud-organization.tfstate" "$@" ;;
+  accounts|commercial)
+                BACKEND_HCL="$COMMERCIAL_BACKEND_HCL" run live/01-accounts "compliant-framework/accounts.tfstate" "$@" ;;
+  organization) run live/02-organization "compliant-framework/organization.tfstate" "$@" ;;
   core)         run live/03-core "compliant-framework/core.tfstate" "$@" ;;
   environment)  env="${1:?environment name required}"; shift; layer_environment "$env" "$@" ;;
   baselines)    layer_baselines "$@" ;;
@@ -93,5 +106,5 @@ case "$layer" in
     for env in $(config_query environments); do layer_environment "$env"; done
     layer_baselines
     ;;
-  *) sed -n '2,25p' "$0"; exit 1 ;;
+  *) sed -n '2,30p' "$0"; exit 1 ;;
 esac
