@@ -1,0 +1,13 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+.terraform.tfstate.lock.info
+# Lambda bundles produced by archive_file
+**/.build/
+# Local configuration with real account ids / emails
+config/framework.yaml
+backend*.hcl
+# Lock files are committed for live layers only
+modules/**/.terraform.lock.hcl

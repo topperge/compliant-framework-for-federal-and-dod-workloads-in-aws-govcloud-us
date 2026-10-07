@@ -1,0 +1,150 @@
+# Compliant Framework for Federal and DoD Workloads in AWS GovCloud (US)
+# Terraform configuration (replaces configs/config.json and the CloudFormation
+# stack parameters). Copy to config/framework.yaml and fill in real values.
+# Every live layer reads this file.
+#
+# This example targets the commercial partition (standard AWS regions). For AWS
+# GovCloud (US) see framework.example.yaml.
+
+# Target partition: aws-us-gov (GovCloud) or aws (commercial regions).
+partition: aws
+primary_region: us-east-1
+
+# Role created in every account by CreateGovCloudAccount and assumed by Terraform.
+account_access_role_name: CompliantFrameworkAccountAccessRole
+
+# Applied to every resource through provider default_tags.
+tags:
+  solution-info:built-by: wwps-proserve-us-dod
+  solution-info:name: compliant-framework-for-federal-and-dod-workloads-in-aws-govcloud-us
+  solution-info:version: 2.0.0-terraform
+
+notifications:
+  core_email: team-alias+core-notifications@example.com        # was coreNotificationEmail
+  environment_email: team-alias+env-notifications@example.com  # was environmentNotificationEmail
+
+#
+# Organization management account (live/01-accounts). With partition aws the
+# accounts are created directly in this organization.
+#
+commercial:
+  region: us-east-1
+  create_organization: false
+  account_vending_machine:
+    enabled: false                    # GovCloud-only (creates GovCloud accounts)
+  # One account request per entry (was loggingAccountEmail,
+  # transitAccountEmail and managementServicesAccountEmail).
+  accounts:
+    logging:
+      name: logging
+      environment: core
+      email: team-alias+logging@example.com
+    prod-transit:
+      name: transit
+      environment: prod
+      email: team-alias+prod-transit@example.com
+    prod-management-services:
+      name: management-services
+      environment: prod
+      email: team-alias+prod-ms@example.com
+
+#
+# Accounts of the target partition (ids are the accounts[*].account_id outputs
+# of 01-accounts)
+#
+central:
+  account_id: "111111111111"          # organization management account (same as commercial payer)
+  service_catalog_provider_name: Central Services
+  ssm_parameters: {}                  # extra SSM parameters to write in central
+
+logging:
+  account_id: "222222222222"
+
+federation:
+  enabled: false
+  name: KeyCloak                      # IAM SAML provider name (must already exist)
+
+account_baseline:
+  enable_backup_services: true
+
+environments:
+  prod:
+    region: us-east-1
+
+    transit:
+      account_id: "333333333333"
+      enable_virtual_firewall: true
+      enable_vpc_firewall: false
+      transit_gateway_amazon_side_asn: 65224
+      firewall_vpc:                   # virtual firewall (VDSS) VPC
+        vpc_cidr: 10.0.0.0/21
+        vpc_nipr_cidr: 0.0.0.0/0      # 0.0.0.0/0 = no secondary NIPR CIDR
+        instance_tenancy: default
+        enable_igw: true
+        attach_tgw: true
+        firewall_a_asn: 65200
+        firewall_b_asn: 65210
+        external_subnet_a_cidr: 10.0.0.0/24
+        external_subnet_b_cidr: 10.0.1.0/24
+        internal_subnet_a_cidr: 10.0.3.0/24
+        internal_subnet_b_cidr: 10.0.4.0/24
+        management_subnet_a_cidr: 10.0.6.0/27
+        management_subnet_b_cidr: 10.0.6.32/27
+        transit_gateway_attachment_subnet_a_cidr: 10.0.7.208/28
+        transit_gateway_attachment_subnet_b_cidr: 10.0.7.224/28
+      # Required only when enable_vpc_firewall is true:
+      # dmz_vpc:
+      #   vpc_cidr: 10.1.0.0/24
+      #   public_subnet_a_cidr: 10.1.0.0/26
+      #   public_subnet_b_cidr: 10.1.0.64/26
+      #   transit_gateway_attachment_subnet_a_cidr: 10.1.0.208/28
+      #   transit_gateway_attachment_subnet_b_cidr: 10.1.0.224/28
+      # inspection_vpc:
+      #   vpc_cidr: 10.2.0.0/24
+      #   public_subnet_a_cidr: 10.2.0.0/27
+      #   public_subnet_b_cidr: 10.2.0.32/27
+      #   firewall_subnet_a_cidr: 10.2.0.64/27
+      #   firewall_subnet_b_cidr: 10.2.0.96/27
+      #   transit_gateway_attachment_subnet_a_cidr: 10.2.0.208/28
+      #   transit_gateway_attachment_subnet_b_cidr: 10.2.0.224/28
+
+    management_services:
+      account_id: "444444444444"
+      enable_directory_vpc: true
+      enable_external_access_vpc: true
+      service_catalog_principal_arns: []
+      management_services_vpc:
+        vpc_cidr: 10.0.20.0/22
+        instance_tenancy: default
+        application_subnet_a_cidr: 10.0.20.0/24
+        application_subnet_b_cidr: 10.0.21.0/24
+        data_subnet_a_cidr: 10.0.23.0/26
+        data_subnet_b_cidr: 10.0.23.64/26
+        transit_gateway_attachment_subnet_a_cidr: 10.0.23.208/28
+        transit_gateway_attachment_subnet_b_cidr: 10.0.23.224/28
+      directory_vpc:
+        vpc_cidr: 10.0.10.0/24
+        instance_tenancy: default     # must be default for AWS Managed AD
+        application_subnet_a_cidr: 10.0.10.0/27
+        application_subnet_b_cidr: 10.0.10.32/27
+        data_subnet_a_cidr: 10.0.10.96/27
+        data_subnet_b_cidr: 10.0.10.128/27
+        transit_gateway_attachment_subnet_a_cidr: 10.0.10.208/28
+        transit_gateway_attachment_subnet_b_cidr: 10.0.10.224/28
+      external_access_vpc:
+        vpc_cidr: 10.0.24.0/24
+        instance_tenancy: default
+        public_subnet_a_cidr: 10.0.24.0/27
+        public_subnet_b_cidr: 10.0.24.32/27
+        application_subnet_a_cidr: 10.0.24.96/27
+        application_subnet_b_cidr: 10.0.24.128/27
+        transit_gateway_attachment_subnet_a_cidr: 10.0.24.208/28
+        transit_gateway_attachment_subnet_b_cidr: 10.0.24.224/28
+
+    # Mission App / plugin accounts: placed in the environment tenants OU,
+    # baselined, and (when transit_gateway_attachment_id is set) routed
+    # through the Transit Gateway.
+    tenants: []
+    # - name: workspaces
+    #   account_id: "555555555555"
+    #   transit_gateway_attachment_id: tgw-attach-0123456789abcdef0
